@@ -32,7 +32,7 @@ cl = function(dat, fm, cluster) {
 }
 
 ## Set working directory
-setwd("/Users/alasd/Documents/Git_Projects/ci-assignment/dataverse_files")
+setwd("/Users/alasd/Documents/Git_Projects/ci-assignment/Formative")
 
 ## Read csv data
 police.data.save = read.csv("HuCon_ISQ_Data.csv")
@@ -45,7 +45,7 @@ police.data = police.data[-which(is.na(police.data$death_not_remanded)), ]
 ##############
 ###Table A1###
 ##############
-stargazer(police.data, median = T)
+stargazer(police.data, type = "text", median = T)
 
 ###############
 ###Figure A1###
@@ -146,7 +146,7 @@ model.poisson.t1 = glm(death_not_remanded ~ 1 + l.state_pca + state_ut + as.fact
 
 model.poisson.t1.cl = cl(police.data.t1, model.poisson.t1, police.data.t1$state_ut)
 
-stargazer(model.poisson.t1.cl)
+stargazer(model.poisson.t1.cl, type = "text")
 
 ## predict death count if all PCAs are inplemented on time
 police.imp.p = police.data.t1
@@ -186,7 +186,7 @@ model.poisson.plb = glm(death_not_remanded ~ 1 + tm3 + tm2 + tm1 + t + tp1 + tp2
 
 model.poisson.plb.cl = cl(police.data.f1, model.poisson.plb, police.data.f1$state_ut)
 
-stargazer(model.poisson.plb.cl)
+stargazer(model.poisson.plb.cl, type = "text")
 
 ## Overdispersion test
 dispersiontest(model.poisson.plb, trafo = 1)
@@ -313,7 +313,7 @@ model.poisson.SHRC = glm(death_not_remanded ~ 1 + l.SHRC + state_ut + as.factor(
 
 model.poisson.SHRC.cl = cl(police.data.t1, model.poisson.SHRC, police.data.t1$state_ut)
 
-stargazer(model.poisson.SHRC.cl)
+stargazer(model.poisson.SHRC.cl, type = "text")
 
 ## Model SHRC with controls
 ## Loop models for 5 imputation datasets
@@ -390,7 +390,7 @@ result.t3
 police.imp.d =  police.data.save[,  c("state_ut", "year", "death_remanded", "death_not_remanded", "state_pca", "district_pca", "type", "sc_order1", "committee1",
                                        "gdp", "religion2", "head_trans")]
 
-stargazer(police.imp.d, median = T)
+stargazer(police.imp.d, type = "text", median = T)
 
 ##############
 ###Table A6###
@@ -787,7 +787,7 @@ model.p.GTD.cl.c[2:5, 1] = result.t2[, 1]
 model.p.GTD.cl.c[2:5, 2] = result.t2[, 2]
 model.p.GTD.cl.c[2:5, 4] = result.t2[, 3]
 
-stargazer(model.ols.GTD.cl, model.ols.GTD.cl.c, model.p.GTD.cl, model.p.GTD.cl.c)
+stargazer(model.ols.GTD.cl, model.ols.GTD.cl.c, model.p.GTD.cl, model.p.GTD.cl.c, type = "text")
 
 ##############
 ###Table A8###
@@ -1116,7 +1116,7 @@ model.ols.log.cl.c[2:4, 1] = result.t2[, 1]
 model.ols.log.cl.c[2:4, 2] = result.t2[, 2]
 model.ols.log.cl.c[2:4, 4] = result.t2[, 3]
 
-stargazer(model.ols.cl, model.ols.cl.c, model.ols.log.cl, model.ols.log.cl.c)
+stargazer(model.ols.cl, model.ols.cl.c, model.ols.log.cl, model.ols.log.cl.c, type = "text")
 
 
 ###############
@@ -1274,7 +1274,7 @@ model.ols.log.cl.c[2:4, 1] = result.t2[, 1]
 model.ols.log.cl.c[2:4, 2] = result.t2[, 2]
 model.ols.log.cl.c[2:4, 4] = result.t2[, 3]
 
-stargazer(model.ols.nl.cl, model.ols.nl.cl.c, model.p.nl.cl, model.p.nl.cl.c)
+stargazer(model.ols.nl.cl, model.ols.nl.cl.c, model.p.nl.cl, model.p.nl.cl.c, type = "text")
 
 
 ###############
@@ -1883,7 +1883,7 @@ police.data.t1$l.district_pca = ifelse(is.na(police.data.t1$l.district_pca), 0, 
 ## directives data
 directives = police.data.t1[, c("l.ssc", "l.dgp_tenure", "l.o_tenure", "l.invest_law", "l.peb", "l.state_pca", "l.district_pca")]
 
-stargazer(cor(directives))
+stargazer(cor(directives), type = "text")
 
 ###############
 ###Table A16###
@@ -2588,7 +2588,7 @@ model.poisson.bind = glm(death_not_remanded ~ 1 + l.state_pca + l.pca_bind + as.
 
 model.poisson.bind.cl = cl(police.data.t1, model.poisson.bind, police.data.t1$state_ut)
 
-stargazer(model.poisson.bind.cl)
+stargazer(model.poisson.bind.cl, type = "text")
 
 ## categorical variable
 police.data.t1$bindinglvl = ifelse(police.data.t1$l.pca_bind == 1 & police.data.t1$l.state_pca == 1, "Binding", 
@@ -2602,7 +2602,7 @@ model.poisson.bind.ca = glm(death_not_remanded ~ 1 + bindinglvl + as.factor(stat
 
 model.poisson.bind.ca.cl = cl(police.data.t1, model.poisson.bind.ca, police.data.t1$state_ut)
 
-stargazer(model.poisson.bind.ca.cl)
+stargazer(model.poisson.bind.ca.cl, type = "text")
 
 
 ##############
@@ -3326,7 +3326,7 @@ model.poisson.ind.ca = glm(death_not_remanded ~ 1 + indlvl + as.factor(state_ut)
 
 model.poisson.ind.ca.cl = cl(police.data.t1, model.poisson.ind.ca, police.data.t1$state_ut)
 
-stargazer(model.poisson.ind.ca.cl)
+stargazer(model.poisson.ind.ca.cl, type = "text")
 
 ##############
 ###Table A24##
@@ -3506,5 +3506,5 @@ model.p.ngo.cl.c[2:5, 1] = result.t3[, 1]
 model.p.ngo.cl.c[2:5, 2] = result.t3[, 2]
 model.p.ngo.cl.c[2:5, 4] = result.t3[, 3]
 
-stargazer(model.ols.ngo.cl, model.ols.ngo.cl.c, model.p.ngo.cl, model.p.ngo.cl.c)
+stargazer(model.ols.ngo.cl, model.ols.ngo.cl.c, model.p.ngo.cl, model.p.ngo.cl.c, type = "text")
 
