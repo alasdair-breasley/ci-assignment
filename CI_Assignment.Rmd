@@ -1,0 +1,40 @@
+---
+title: "CI_Assignment"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Packages 
+
+```{r include = FALSE}
+
+library(tidyverse)
+library(ggplot2)
+library(scales)
+
+```
+
+## Initial Data Loading and Checks 
+
+```{r}
+
+# Load data 
+
+# Scotland alcohol related hospital visits by local authority 
+filepath = "scotland_hospital_visits_local_authority.csv"
+scotland_hospital_visits_local_authority = read.csv(filepath, header = TRUE)
+
+# Scotland alcohol related hospital visits national 
+filepath = "scotland_hospital_visits_whole.csv"
+scotland_hospital_visits_whole = read.csv(filepath, header = TRUE)
+
+# Scotland population by local authority and national 
+filepath = "scotland_population_local_authority_and_whole.csv"
+scotland_population_local_authority_whole = read.csv(filepath, header = TRUE)
+
+```
