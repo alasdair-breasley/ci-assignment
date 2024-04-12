@@ -38,3 +38,84 @@ filepath = "scotland_population_local_authority_and_whole.csv"
 scotland_population_local_authority_whole = read.csv(filepath, header = TRUE)
 
 ```
+
+```{r}
+
+# Preprocess data 
+
+# Scotland alcohol related hospital visits by local authority 
+scotland_hospital_visits_local_authority_clean = scotland_hospital_visits_local_authority %>% 
+  dplyr::select(financial_year, local_authority, sg_code, stays)
+
+# Check for NAs
+colSums(is.na(scotland_hospital_visits_local_authority_clean))
+
+# Scotland alcohol related hospital visits national 
+scotland_hospital_visits_whole_clean = scotland_hospital_visits_whole %>% 
+  dplyr::select(financial_year, grouping, stays)
+
+# Check for NAs
+colSums(is.na(scotland_hospital_visits_whole_clean))
+
+# Scotland yeaarly population by local authority 
+scotland_population_local_authority_clean = scotland_population_local_authority_whole %>% 
+  dplyr::filter(local_authority != "Scotland") %>% 
+  dplyr::mutate(local_authority = dplyr::case_when(local_authority == "City of Edinburgh" ~ "Edinburgh City", 
+                   local_authority == "East Ayrshire" ~ "Ayrshire East", 
+                   local_authority == "East Dunbartonshire" ~ "Dunbartonshire East", 
+                   local_authority ==  "East Lothian" ~ "Lothian East", 
+                   local_authority == "East Renfrewshire" ~ "Renfrewshire East", 
+                   local_authority == "North Ayrshire" ~ "Ayrshire North", 
+                   local_authority == "North Lanarkshire" ~ "Lanarkshire North", 
+                   local_authority == "Scottish Borders" ~ "Borders", 
+                   local_authority == "South Ayrshire" ~ "Ayrshire South", 
+                   local_authority == "South Lanarkshire" ~ "Lanarkshire South", 
+                   local_authority == "West Dunbartonshire" ~ "Dunbartonshire West", 
+                   local_authority == "West Lothian" ~ "Lothian West", 
+                   TRUE ~ local_authority))
+
+# Check for NAs
+colSums(is.na(scotland_population_local_authority_clean))
+
+# Check local authority names match 
+sort(unique(scotland_hospital_visits_local_authority_clean$local_authority)) == sort(unique(scotland_population_local_authority_clean$local_authority))
+
+```
+
+```{r}
+
+# Load data 
+filepath = "https://andygolightly.github.io/teaching/MATH43515/summative/alasdair.csv"
+mst_data_wide = read.csv(filepath, header = TRUE)
+
+# Preprocess long data 
+mst_data = mst_data_wide %>% 
+  tidyr::pivot_longer(cols = c(Responset1, Responset2, Responset3), 
+                      names_to = "Time", 
+                      values_to = "Response") %>% # Reshape data to long format 
+  dplyr::mutate(Time = case_when(Time == "Responset1" ~ "1", 
+                                 Time == "Responset2" ~ "2", 
+                                 Time == "Responset3" ~ "3", 
+                                 TRUE ~ NA)) %>% 
+  dplyr::rename(Treatment = Trt, Nurse = ID) %>% 
+  dplyr::mutate(Nurse = as.factor(Nurse), 
+                Hospital = as.factor(Hospital), 
+                Treatment = as.factor(Treatment), 
+                Gender = as.factor(Gender), 
+                Size = as.factor(Size), 
+                Time = as.factor(Time))
+
+# Preprocess wide data 
+mst_data_wide = mst_data_wide %>% 
+  dplyr::rename(Treatment = Trt, Nurse = ID) %>% 
+  dplyr::mutate(Nurse = as.factor(Nurse), 
+                Hospital = as.factor(Hospital), 
+                Treatment = as.factor(Treatment), 
+                Gender = as.factor(Gender), 
+                Size = as.factor(Size))
+
+# Check for NAs
+colSums(is.na(mst_data))
+
+```
+
