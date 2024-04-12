@@ -45,25 +45,29 @@ scotland_population_local_authority_whole = read.csv(filepath, header = TRUE)
 
 # Scotland alcohol related hospital visits by local authority 
 scotland_hospital_visits_local_authority_clean = scotland_hospital_visits_local_authority %>% 
-  dplyr::select(financial_year, local_authority, sg_code, stays)
+  dplyr::select(financial_year, local_authority, sg_code, stays) %>% 
+  dplyr::mutate(year = str_sub(str_trim(financial_year), start = 1, end = 4)) %>% 
+  dplyr::mutate(year = as.numeric(year))
 
 # Check for NAs
 colSums(is.na(scotland_hospital_visits_local_authority_clean))
 
 # Scotland alcohol related hospital visits national 
 scotland_hospital_visits_whole_clean = scotland_hospital_visits_whole %>% 
-  dplyr::select(financial_year, grouping, stays)
+  dplyr::select(financial_year, grouping, stays) %>% 
+  dplyr::mutate(year = str_sub(str_trim(financial_year), start = 1, end = 4)) %>% 
+  dplyr::mutate(year = as.numeric(year))
 
 # Check for NAs
 colSums(is.na(scotland_hospital_visits_whole_clean))
 
-# Scotland yeaarly population by local authority 
+# Scotland yearly population by local authority 
 scotland_population_local_authority_clean = scotland_population_local_authority_whole %>% 
   dplyr::filter(local_authority != "Scotland") %>% 
   dplyr::mutate(local_authority = dplyr::case_when(local_authority == "City of Edinburgh" ~ "Edinburgh City", 
                    local_authority == "East Ayrshire" ~ "Ayrshire East", 
                    local_authority == "East Dunbartonshire" ~ "Dunbartonshire East", 
-                   local_authority ==  "East Lothian" ~ "Lothian East", 
+                   local_authority == "East Lothian" ~ "Lothian East", 
                    local_authority == "East Renfrewshire" ~ "Renfrewshire East", 
                    local_authority == "North Ayrshire" ~ "Ayrshire North", 
                    local_authority == "North Lanarkshire" ~ "Lanarkshire North", 
@@ -72,7 +76,8 @@ scotland_population_local_authority_clean = scotland_population_local_authority_
                    local_authority == "South Lanarkshire" ~ "Lanarkshire South", 
                    local_authority == "West Dunbartonshire" ~ "Dunbartonshire West", 
                    local_authority == "West Lothian" ~ "Lothian West", 
-                   TRUE ~ local_authority))
+                   TRUE ~ local_authority)) %>% 
+  dplyr::mutate(year = as.numeric(year))
 
 # Check for NAs
 colSums(is.na(scotland_population_local_authority_clean))
@@ -80,42 +85,26 @@ colSums(is.na(scotland_population_local_authority_clean))
 # Check local authority names match 
 sort(unique(scotland_hospital_visits_local_authority_clean$local_authority)) == sort(unique(scotland_population_local_authority_clean$local_authority))
 
+# Create Scotland alcohol related hospital visits per 100,00 by local authority 
+scotland_hospital_visits_local_authority_per100k = scotland_hospital_visits_local_authority_clean %>% 
+  dplyr::left_join(scotland_population_local_authority_clean, by = c("local_authority", "year")) %>% 
+  dplyr::mutate(stays_per100k = (stays * 100000) / population)
+
 ```
 
 ```{r}
 
-# Load data 
-filepath = "https://andygolightly.github.io/teaching/MATH43515/summative/alasdair.csv"
-mst_data_wide = read.csv(filepath, header = TRUE)
+# 
+scotland_hospital_visits_local_authority_per100k_vis = scotland_hospital_visits_local_authority_per100k %>% 
+  dplyr::mutate(year = as.numeric(as.character(year)))
 
-# Preprocess long data 
-mst_data = mst_data_wide %>% 
-  tidyr::pivot_longer(cols = c(Responset1, Responset2, Responset3), 
-                      names_to = "Time", 
-                      values_to = "Response") %>% # Reshape data to long format 
-  dplyr::mutate(Time = case_when(Time == "Responset1" ~ "1", 
-                                 Time == "Responset2" ~ "2", 
-                                 Time == "Responset3" ~ "3", 
-                                 TRUE ~ NA)) %>% 
-  dplyr::rename(Treatment = Trt, Nurse = ID) %>% 
-  dplyr::mutate(Nurse = as.factor(Nurse), 
-                Hospital = as.factor(Hospital), 
-                Treatment = as.factor(Treatment), 
-                Gender = as.factor(Gender), 
-                Size = as.factor(Size), 
-                Time = as.factor(Time))
-
-# Preprocess wide data 
-mst_data_wide = mst_data_wide %>% 
-  dplyr::rename(Treatment = Trt, Nurse = ID) %>% 
-  dplyr::mutate(Nurse = as.factor(Nurse), 
-                Hospital = as.factor(Hospital), 
-                Treatment = as.factor(Treatment), 
-                Gender = as.factor(Gender), 
-                Size = as.factor(Size))
-
-# Check for NAs
-colSums(is.na(mst_data))
+# Scotland alcohol related hospital visits per 100,000 by local authority 
+ggplot(data = scotland_hospital_visits_local_authority_per100k, aes(x = year, y = stays_per100k, colour = local_authority)) +
+  geom_line() +
+  scale_x_continuous(breaks = breaks_width(4), minor_breaks = NULL) +
+  scale_y_continuous(breaks = breaks_width(100)) +
+  labs(x = "Year", y = "Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 by Local Authority - Scotland") +
+  theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+        axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
 ```
-
