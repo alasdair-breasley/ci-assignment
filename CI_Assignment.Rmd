@@ -120,6 +120,7 @@ scotland_hospital_visits_whole_per100k = scotland_hospital_visits_whole_clean %>
 # England alcohol related hospital visits by local authority 
 england_hospital_visits_local_authority_per100k = england_hospital_visits_local_authority %>% 
   dplyr::mutate(year = str_sub(str_trim(financial_year), start = 1, end = 4)) %>% 
+  dplyr::select(financial_year, year, local_authority, stays_per100k) %>% 
   dplyr::mutate(stays_per100k = as.numeric(stays_per100k), 
                 year = as.numeric(year)) %>% 
   dplyr::filter(!is.na(stays_per100k)) %>% 
@@ -214,6 +215,13 @@ local_authority_characteristics_has_per100k = local_authority_characteristics %>
 # Number of Scotland and England local authorities with per 100k data and complete matching data 
 length(unique(local_authority_characteristics_has_per100k$local_authority))
 
+# Create dataframe of Scotland and England outcomes 
+hospitalisations = scotland_hospital_visits_local_authority_per100k %>% 
+  dplyr::select(financial_year, year, local_authority, stays_per100k) %>% 
+  dplyr::filter(year >= 2012 & year <= 2019)
+
+hospitalisations = rbind(hospitalisations, england_hospital_visits_local_authority_per100k_has_characteristics)
+
 ```
 
 ```{r}
@@ -290,10 +298,31 @@ matched_pairs = data.frame(Treatment_ID = rownames(match_matrix),
 
 # Merge back into original data 
 matched_details = merge(local_authority_characteristics_has_per100k, matched_pairs, by.x = "row.names", by.y = "Treatment_ID")
-matched_details = merge(matched_details, local_authority_characteristics_has_per100k, by.x = "Control_ID", by.y = "row.names", suffixes = c(".treat", ".control"))
+matched_details = merge(matched_details, local_authority_characteristics_has_per100k, by.x = "Control_ID", by.y = "row.names", suffixes = c("_treat", "_control"))
 
 # Just local authorities 
 matched_local_authorities = matched_details %>% 
-  dplyr::select(Control_ID, Row.names, local_authority.treat, local_authority.control)
+  dplyr::select(Control_ID, Row.names, local_authority_treat, local_authority_control)
+
+```
+
+```{r}
+
+# Basic pre vs post difference in difference 
+hospitalisations_wide = hospitalisations %>% 
+  dplyr::select(-financial_year) %>% 
+  tidyr::pivot_wider(names_from = year, values_from = stays_per100k)
+
+dif_in_dif_basic = matched_local_authorities %>% 
+  dplyr::left_join(hospitalisations_wide, by = c("local_authority_treat" = "local_authority")) %>% 
+  dplyr::left_join(hospitalisations_wide, by = c("local_authority_control" = "local_authority"), suffix = c("_treat", "_control")) 
+
+# Pre and post treatment outcomes for the treatment and control groups 
+pre_treat = mean(dif_in_dif_basic$`2017_treat`)
+post_treat = mean(dif_in_dif_basic$`2019_treat`)
+pre_control = mean(dif_in_dif_basic$`2017_control`)
+post_control = mean(dif_in_dif_basic$`2019_control`)
+
+dif_in_dif_basic_estimate = (post_treat - pre_treat) - (post_control - pre_control)
 
 ```
