@@ -63,7 +63,20 @@ uk_pop_ages_sex_survey_2017 = read.csv(filepath, header = TRUE)
 scotland_hospital_visits_local_authority_clean = scotland_hospital_visits_local_authority %>% 
   dplyr::select(financial_year, local_authority, sg_code, stays) %>% 
   dplyr::mutate(year = str_sub(str_trim(financial_year), start = 1, end = 4)) %>% 
-  dplyr::mutate(year = as.numeric(year))
+  dplyr::mutate(year = as.numeric(year)) %>% 
+  dplyr::mutate(local_authority = dplyr::case_when(local_authority == "Edinburgh City" ~ "City of Edinburgh", 
+                   local_authority == "Ayrshire East" ~ "East Ayrshire", 
+                   local_authority == "Dunbartonshire East" ~ "East Dunbartonshire", 
+                   local_authority == "Lothian East" ~ "East Lothian", 
+                   local_authority == "Renfrewshire East" ~ "East Renfrewshire", 
+                   local_authority == "Ayrshire North" ~ "North Ayrshire", 
+                   local_authority == "Lanarkshire North" ~ "North Lanarkshire", 
+                   local_authority == "Borders" ~ "Scottish Borders", 
+                   local_authority == "Ayrshire South" ~ "South Ayrshire", 
+                   local_authority == "Lanarkshire South" ~ "South Lanarkshire", 
+                   local_authority == "Dunbartonshire West" ~ "West Dunbartonshire", 
+                   local_authority == "Lothian West" ~ "West Lothian", 
+                   TRUE ~ local_authority))
 
 # Check for NAs
 colSums(is.na(scotland_hospital_visits_local_authority_clean))
@@ -80,19 +93,6 @@ colSums(is.na(scotland_hospital_visits_whole_clean))
 # Scotland yearly population by local authority 
 scotland_population_local_authority_clean = scotland_population_local_authority_whole %>% 
   dplyr::filter(local_authority != "Scotland") %>% 
-  dplyr::mutate(local_authority = dplyr::case_when(local_authority == "City of Edinburgh" ~ "Edinburgh City", 
-                   local_authority == "East Ayrshire" ~ "Ayrshire East", 
-                   local_authority == "East Dunbartonshire" ~ "Dunbartonshire East", 
-                   local_authority == "East Lothian" ~ "Lothian East", 
-                   local_authority == "East Renfrewshire" ~ "Renfrewshire East", 
-                   local_authority == "North Ayrshire" ~ "Ayrshire North", 
-                   local_authority == "North Lanarkshire" ~ "Lanarkshire North", 
-                   local_authority == "Scottish Borders" ~ "Borders", 
-                   local_authority == "South Ayrshire" ~ "Ayrshire South", 
-                   local_authority == "South Lanarkshire" ~ "Lanarkshire South", 
-                   local_authority == "West Dunbartonshire" ~ "Dunbartonshire West", 
-                   local_authority == "West Lothian" ~ "Lothian West", 
-                   TRUE ~ local_authority)) %>% 
   dplyr::mutate(year = as.numeric(year))
 
 # Check for NAs
@@ -132,6 +132,15 @@ uk_pop_survey_2017_clean = uk_pop_survey_2017 %>%
                 employment_rate_16to64 = as.numeric(employment_rate_16to64), 
                 unemployment_rate_16to64 = as.numeric(unemployment_rate_16to64)) %>% 
   dplyr::select(-unemployment_rate_16plus) %>% 
+  dplyr::mutate(economic_activity_rate_16to64 = if_else(local_authority == "Orkney Islands" | local_authority == "Shetland Islands", 
+                                                        (77.3 + 84.6 + 83.7) / 3, 
+                                                        economic_activity_rate_16to64), 
+                employment_rate_16to64 = if_else(local_authority == "Orkney Islands" | local_authority == "Shetland Islands", 
+                                                        (75.6 + 81.0 + 81.1) / 3, 
+                                                        employment_rate_16to64), 
+                unemployment_rate_16to64 = if_else(local_authority == "Orkney Islands" | local_authority == "Shetland Islands", 
+                                                        (2.3 + 4.2 + 3.0) / 3, 
+                                                        unemployment_rate_16to64)) %>% # economic activity rate, employment rate, and unemployment rate are imputed for Orkney and Shetland using the mean of the included local authorities which are also part of the wider highlands and islands area 
   dplyr::filter_all(all_vars(!is.na(.))) 
 
 # UK annual hours and earnings data by local authority - 2017 
@@ -161,6 +170,11 @@ uk_pop_ages_sex_survey_2017_clean = uk_pop_ages_sex_survey_2017 %>%
                 percentage_0to15 = pop_0to15 / pop_all, 
                 percentage_16to64 = pop_16to64 / pop_all, 
                 percentage_65plus = pop_65plus / pop_all) 
+
+# Create local authority matching dataset 
+local_authority_characteristics = uk_pop_survey_2017_clean %>%  
+  dplyr::inner_join(uk_earnings_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+  dplyr::inner_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code"))
 
 ```
 
