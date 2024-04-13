@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggplot2)
 library(scales)
+library(MatchIt)
 
 ```
 
@@ -206,7 +207,9 @@ length(unique(england_hospital_visits_local_authority_per100k_has_characteristic
 
 # Filter local authority matching dataset 
 local_authority_characteristics_has_per100k = local_authority_characteristics %>% 
-  dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority))
+  dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority)) %>% 
+  dplyr::mutate(treatment = if_else(local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority), 
+                                    1, 0))
 
 # Number of Scotland and England local authorities with per 100k data and complete matching data 
 length(unique(local_authority_characteristics_has_per100k$local_authority))
@@ -266,3 +269,31 @@ ggplot(data = scot_eng_total, aes(x = year, y = stays_per100k, colour = country)
 
 ```
 
+```{r}
+
+# Perform matching based on Mahalanobis distance 
+matchit_output = matchit(treatment ~ economic_activity_rate_16to64 + employment_rate_16to64 + unemployment_rate_16to64 + 
+                           median_annual_pay_gross + percentage_male + percentage_0to15 + percentage_16to64 + 
+                           percentage_65plus, 
+                         data = local_authority_characteristics_has_per100k, 
+                         method = "nearest", distance = "mahalanobis")
+
+# Match data 
+matched_data = match.data(matchit_output)
+
+# Match matrix 
+match_matrix = matchit_output$match.matrix
+
+# Create matched pairs dataframe 
+matched_pairs = data.frame(Treatment_ID = rownames(match_matrix), 
+                           Control_ID = as.vector(match_matrix))
+
+# Merge back into original data 
+matched_details = merge(local_authority_characteristics_has_per100k, matched_pairs, by.x = "row.names", by.y = "Treatment_ID")
+matched_details = merge(matched_details, local_authority_characteristics_has_per100k, by.x = "Control_ID", by.y = "row.names", suffixes = c(".treat", ".control"))
+
+# Just local authorities 
+matched_local_authorities = matched_details %>% 
+  dplyr::select(Control_ID, Row.names, local_authority.treat, local_authority.control)
+
+```
