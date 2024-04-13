@@ -174,7 +174,42 @@ uk_pop_ages_sex_survey_2017_clean = uk_pop_ages_sex_survey_2017 %>%
 # Create local authority matching dataset 
 local_authority_characteristics = uk_pop_survey_2017_clean %>%  
   dplyr::inner_join(uk_earnings_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
-  dplyr::inner_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code"))
+  dplyr::inner_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code")) 
+
+# test1 = unique(scotland_hospital_visits_local_authority_per100k$local_authority)
+# 
+# test2 = unique(local_authority_characteristics$local_authority)
+# 
+# unique(scotland_hospital_visits_local_authority_per100k$local_authority)
+# 
+# test1 %in% test2
+
+# test3 = unique(england_hospital_visits_local_authority_per100k$local_authority)
+# 
+# test4 = unique(local_authority_characteristics$local_authority)
+# 
+# unique(england_hospital_visits_local_authority_per100k$local_authority)
+# 
+# unique(local_authority_characteristics$local_authority)
+# 
+# test3 %in% test4
+
+# Filter England alcohol related hospital visits by local authority to only include local authorities with complete matching data 
+england_hospital_visits_local_authority_per100k_has_characteristics = england_hospital_visits_local_authority_per100k %>% 
+  dplyr::filter(local_authority %in% unique(local_authority_characteristics$local_authority))
+
+# Number of England local authorities with per 100k data 
+length(unique(england_hospital_visits_local_authority_per100k$local_authority))
+
+# Number of England local authorities with per 100k data and complete matching data 
+length(unique(england_hospital_visits_local_authority_per100k_has_characteristics$local_authority))
+
+# Filter local authority matching dataset 
+local_authority_characteristics_has_per100k = local_authority_characteristics %>% 
+  dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority))
+
+# Number of Scotland and England local authorities with per 100k data and complete matching data 
+length(unique(local_authority_characteristics_has_per100k$local_authority))
 
 ```
 
