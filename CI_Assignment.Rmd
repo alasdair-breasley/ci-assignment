@@ -135,9 +135,37 @@ ggplot(data = scotland_hospital_visits_local_authority_per100k, aes(x = year, y 
 ggplot(data = scotland_hospital_visits_whole_per100k, aes(x = year, y = stays_per100k)) +
   geom_line() +
   scale_x_continuous(breaks = breaks_width(4), minor_breaks = NULL) +
-  scale_y_continuous(breaks = breaks_width(100)) +
+  scale_y_continuous(breaks = breaks_width(100), limits = c(0, 1000)) +
   labs(x = "Year", y = "Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 by Local Authority - Scotland") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
 ```
+
+```{r}
+
+# Visualise Scotland vs England total 
+scot_total = scotland_hospital_visits_whole_per100k %>% 
+  dplyr::rename(country = local_authority) %>% 
+  dplyr::select(c(country, year, stays_per100k)) %>% 
+  dplyr::filter(year >= 2012 & year <= 2019)
+
+country = c("England", "England", "England", "England", "England", "England", "England", "England")
+year = c(2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019)
+stays_per100k = c(610, 620, 580, 560, 490, 490, 510, 520)
+
+eng_total = data.frame(country, year, stays_per100k)
+
+scot_eng_total = rbind(scot_total, eng_total)
+
+# Scotland and England alcohol related hospital visits per 100,000 by local authority 
+ggplot(data = scot_eng_total, aes(x = year, y = stays_per100k, colour = country)) +
+  geom_line() +
+  scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
+  scale_y_continuous(breaks = breaks_width(100), limits = c(0, 800)) +
+  labs(x = "Year", y = "Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 Scotland vs England") +
+  theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+        axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
+
+```
+
