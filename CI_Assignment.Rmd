@@ -41,6 +41,18 @@ scotland_population_local_authority_whole = read.csv(filepath, header = TRUE)
 filepath = "england_hospital_visits_per100k_local_authority_joined.csv"
 england_hospital_visits_local_authority = read.csv(filepath, header = TRUE)
 
+# UK annual population survey data by local authority - 2017 
+filepath = "annual_population_survey.csv"
+uk_pop_survey_2017 = read.csv(filepath, header = TRUE)
+
+# UK annual hours and earnings data by local authority - 2017 
+filepath = "annual_hours_and_earnings_survey.csv"
+uk_earnings_survey_2017 = read.csv(filepath, header = TRUE)
+
+# UK annual population survey data by age, sex, local authority - 2017 
+filepath = "annual_population_age_sex_survey.csv"
+uk_pop_ages_sex_survey_2017 = read.csv(filepath, header = TRUE)
+
 ```
 
 ```{r}
@@ -113,6 +125,42 @@ england_hospital_visits_local_authority_per100k = england_hospital_visits_local_
   dplyr::group_by(local_authority) %>% 
   dplyr::filter(n() >= 8) %>% 
   dplyr::ungroup() 
+
+# UK annual population survey data by local authority - 2017 
+uk_pop_survey_2017_clean = uk_pop_survey_2017 %>% 
+  dplyr::mutate(economic_activity_rate_16to64 = as.numeric(economic_activity_rate_16to64), 
+                employment_rate_16to64 = as.numeric(employment_rate_16to64), 
+                unemployment_rate_16to64 = as.numeric(unemployment_rate_16to64)) %>% 
+  dplyr::select(-unemployment_rate_16plus) %>% 
+  dplyr::filter_all(all_vars(!is.na(.))) 
+
+# UK annual hours and earnings data by local authority - 2017 
+uk_earnings_survey_2017_clean = uk_earnings_survey_2017 %>% 
+  dplyr::mutate(median_weekly_pay_gross = as.numeric(median_weekly_pay_gross), 
+                median_annual_pay_gross = as.numeric(median_annual_pay_gross), 
+                mean_weekly_pay_gross = as.numeric(mean_weekly_pay_gross), 
+                mean_annual_pay_gross = as.numeric(mean_annual_pay_gross)) %>% 
+  dplyr::filter_all(all_vars(!is.na(.))) 
+
+# UK annual population survey data by age, sex, local authority - 2017 
+uk_pop_ages_sex_survey_2017_clean = uk_pop_ages_sex_survey_2017 %>% 
+  dplyr::mutate(pop_all = as.numeric(pop_all),
+                pop_0to15 = as.numeric(pop_0to15),
+                pop_16to64 = as.numeric(pop_16to64), 
+                pop_65plus = as.numeric(pop_65plus), 
+                pop_all_m = as.numeric(pop_all_m), 
+                pop_0to15_m = as.numeric(pop_0to15_m), 
+                pop_16to64_m = as.numeric(pop_16to64_m), 
+                pop_65plus_m = as.numeric(pop_65plus_m), 
+                pop_all_f = as.numeric(pop_all_f), 
+                pop_0to15_f = as.numeric(pop_0to15_f), 
+                pop_16to64_f = as.numeric(pop_16to64_f), 
+                pop_65plus_f = as.numeric(pop_65plus_f)) %>% 
+  dplyr::filter_all(all_vars(!is.na(.))) %>% 
+  dplyr::mutate(percentage_male = pop_all_m / (pop_all_m + pop_all_f), 
+                percentage_0to15 = pop_0to15 / pop_all, 
+                percentage_16to64 = pop_16to64 / pop_all, 
+                percentage_65plus = pop_65plus / pop_all) 
 
 ```
 
