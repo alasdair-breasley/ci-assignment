@@ -433,7 +433,7 @@ ggplot(data = dif_in_dif_2y_estimates_placebo, aes(x = year, y = dif_in_dif_2y_e
   geom_point(shape = 16, size = 3, color = "black") +
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.1) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
-  geom_vline(xintercept = 2018.33, color = "red", size = 0.75, alpha = 0.8) +
+  geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
   annotate("text", x = 2018.895, y = -75.5, label = "Intervention Date", color = "red", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
@@ -520,9 +520,8 @@ ggplot(data = dif_in_dif_1y_estimates_placebo, aes(x = year, y = dif_in_dif_1y_e
   geom_line(size = 1, linetype = "dotted", color = "black", size = 0.75, alpha = 0.75) +
   geom_point(shape = 16, size = 3, color = "black") +
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.1) +
-  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
-  geom_vline(xintercept = 2018.33, color = "red", size = 0.75, alpha = 0.8) +
+  geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
   annotate("text", x = 2018.895, y = -57, label = "Intervention Date", color = "red", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-60, 60)) +
