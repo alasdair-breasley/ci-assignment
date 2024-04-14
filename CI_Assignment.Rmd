@@ -17,6 +17,7 @@ library(tidyverse)
 library(ggplot2)
 library(scales)
 library(MatchIt)
+library(boot)
 
 ```
 
@@ -361,6 +362,7 @@ ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = g
 # Placebo test for every two year time period prior and spanning the intervention date 
 dif_in_dif_2y_estimates = list()
 
+# Dif in dif calculation for each placebo and actual estimate 
 for (i in 1:6) {
   
   pre_treat_i = mean(dif_in_dif[, (i + 4)])
@@ -374,20 +376,67 @@ for (i in 1:6) {
   
 }
 
-dif_in_dif_2y_estimates = unlist(dif_in_dif_2y_estimates) 
-year = c(2015.25, 2016.25, 2017.25, 2018.25, 2019.25, 2020.25)
+# Function to compute dif in dif estimate 
+dif_in_dif_function = function(data, indices) {
+  
+  # Bootstrap resampling 
+  data_subset = data[indices, ]
+  
+  # Dif in dif calculation for each placebo and actual estimate 
+  estimates = sapply(1:6, function(i) {
+    
+    pre_treat_i = mean(data_subset[, (i + 4)])
+    post_treat_i = mean(data_subset[, (i + 6)])
+    pre_control_i = mean(data_subset[, (i + 12)])
+    post_control_i = mean(data_subset[, (i + 14)])
+    
+    (post_treat_i - pre_treat_i) - (post_control_i - pre_control_i)
+    
+  })
+  
+  return(estimates)
+  
+}
 
-dif_in_dif_2y_estimates_placebo = data.frame(year, dif_in_dif_2y_estimates)
+# Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
+set.seed(123)
+
+bootstrap_results = boot(data = dif_in_dif, statistic = dif_in_dif_function, R = 10000)
+
+# Standard errors 
+boot_se = apply(bootstrap_results$t, 2, sd)
+
+# Bootstrap confidence intervals 
+boot_ci = t(apply(bootstrap_results$t, 2, function(x) {
+  
+  quantile(x, probs = c(0.025, 0.975))
+  
+}))
+
+# Dataframe rows 
+dif_in_dif_2y_estimates = unlist(dif_in_dif_2y_estimates) 
+year = c(2015.25, 2016.25, 2017.25, 2018.25, 2019.25, 2020.25) # End dates of years for showing treatment date against 
+lower_ci = boot_ci[, 1]
+upper_ci = boot_ci[, 2]
+se = boot_se
+
+# Create dataframe 
+dif_in_dif_2y_estimates_placebo = data.frame(year, dif_in_dif_2y_estimates, lower_ci, upper_ci, se)
+
+# Calculate p-values 
+dif_in_dif_2y_estimates_placebo = dif_in_dif_2y_estimates_placebo %>% 
+  dplyr::mutate(p_value = 2 * pnorm(-abs(dif_in_dif_2y_estimates / se)))
 
 # Placebo test results for every two year time period prior to and spanning the intervention date 
-ggplot(data = dif_in_dif_2y_estimates_placebo, aes(x = year, y = dif_in_dif_1y_estimates)) +
+ggplot(data = dif_in_dif_2y_estimates_placebo, aes(x = year, y = dif_in_dif_2y_estimates)) +
   geom_line(size = 1, linetype = "dotted", color = "black", size = 0.75, alpha = 0.75) +
-  geom_point(shape = 45, size = 15, color = "black") +
+  geom_point(shape = 16, size = 3, color = "black") +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.1) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
   geom_vline(xintercept = 2018.33, color = "red", size = 0.75, alpha = 0.8) +
-  annotate("text", x = 2018.895, y = -47.5, label = "Intervention Date", color = "red", size = 4) +
+  annotate("text", x = 2018.895, y = -75.5, label = "Intervention Date", color = "red", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
-  scale_y_continuous(breaks = breaks_width(10), limits = c(-50, 50)) +
+  scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
   labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
@@ -401,6 +450,7 @@ ggplot(data = dif_in_dif_2y_estimates_placebo, aes(x = year, y = dif_in_dif_1y_e
 # Placebo test for every one year time period prior and spanning the intervention date 
 dif_in_dif_1y_estimates = list()
 
+# Dif in dif calculation for each placebo and actual estimate 
 for (i in 1:6) {
   
   pre_treat_i = mean(dif_in_dif[, (i + 4)])
@@ -414,20 +464,68 @@ for (i in 1:6) {
   
 }
 
+# Function to compute dif in dif estimate 
+dif_in_dif_function = function(data, indices) {
+  
+  # Bootstrap resampling 
+  data_subset = data[indices, ]
+  
+  # Dif in dif calculation for each placebo and actual estimate 
+  estimates = sapply(1:6, function(i) {
+    
+    pre_treat_i = mean(data_subset[, (i + 4)])
+    post_treat_i = mean(data_subset[, (i + 5)])
+    pre_control_i = mean(data_subset[, (i + 12)])
+    post_control_i = mean(data_subset[, (i + 13)])
+    
+    (post_treat_i - pre_treat_i) - (post_control_i - pre_control_i)
+    
+  })
+  
+  return(estimates)
+  
+}
+
+# Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
+set.seed(123)
+
+bootstrap_results = boot(data = dif_in_dif, statistic = dif_in_dif_function, R = 10000)
+
+# Standard errors 
+boot_se = apply(bootstrap_results$t, 2, sd)
+
+# Bootstrap confidence intervals 
+boot_ci = t(apply(bootstrap_results$t, 2, function(x) {
+  
+  quantile(x, probs = c(0.025, 0.975))
+  
+}))
+
+# Dataframe rows 
 dif_in_dif_1y_estimates = unlist(dif_in_dif_1y_estimates) 
 year = c(2014.25, 2015.25, 2016.25, 2017.25, 2018.25, 2019.25)
+lower_ci = boot_ci[, 1]
+upper_ci = boot_ci[, 2]
+se = boot_se
 
-dif_in_dif_1y_estimates_placebo = data.frame(year, dif_in_dif_1y_estimates)
+# Create dataframe 
+dif_in_dif_1y_estimates_placebo = data.frame(year, dif_in_dif_1y_estimates, lower_ci, upper_ci, se)
+
+# Calculate p-values 
+dif_in_dif_1y_estimates_placebo = dif_in_dif_1y_estimates_placebo %>% 
+  dplyr::mutate(p_value = 2 * pnorm(-abs(dif_in_dif_1y_estimates / se)))
 
 # Placebo test results for every two year time period prior to and spanning the intervention date 
 ggplot(data = dif_in_dif_1y_estimates_placebo, aes(x = year, y = dif_in_dif_1y_estimates)) +
   geom_line(size = 1, linetype = "dotted", color = "black", size = 0.75, alpha = 0.75) +
-  geom_point(shape = 45, size = 15, color = "black") +
+  geom_point(shape = 16, size = 3, color = "black") +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.1) +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
   geom_vline(xintercept = 2018.33, color = "red", size = 0.75, alpha = 0.8) +
-  annotate("text", x = 2018.895, y = -47.5, label = "Intervention Date", color = "red", size = 4) +
+  annotate("text", x = 2018.895, y = -57, label = "Intervention Date", color = "red", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
-  scale_y_continuous(breaks = breaks_width(10), limits = c(-50, 50)) +
+  scale_y_continuous(breaks = breaks_width(10), limits = c(-60, 60)) +
   labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
