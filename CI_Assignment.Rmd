@@ -340,13 +340,15 @@ hospitalisations_long = dif_in_dif %>%
   dplyr::mutate(group = case_when(str_ends(year, "_treat") ~ "Treatment", 
                                   str_ends(year, "_control") ~ "Control", 
                                   TRUE ~ NA)) %>% 
-  dplyr::mutate(year = as.numeric(str_sub(str_trim(year), start = 1, end = 4))) %>% 
+  dplyr::mutate(year = as.numeric(str_sub(str_trim(year), start = 1, end = 4)) + 1) %>% 
   dplyr::group_by(group, year) %>% 
   dplyr::summarise(stays_per100k = mean(stays_per100k))
 
 # Treatment and control alcohol related hospital visits per 100,000 
 ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = group)) +
   geom_line(size = 0.75) +
+  geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
+  annotate("text", x = 2019.25, y = 25, label = "Intervention Date", color = "red", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(100), limits = c(0, 800)) +
   labs(x = "Year", y = "Mean Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
@@ -437,7 +439,7 @@ ggplot(data = dif_in_dif_2y_estimates_placebo, aes(x = year, y = dif_in_dif_2y_e
   annotate("text", x = 2018.895, y = -75.5, label = "Intervention Date", color = "red", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
-  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
+  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Estimated Causal Effect Including Pretreatment Placebos") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
