@@ -31,6 +31,7 @@ library(boot)
 mean_imputation = FALSE 
 median_imputation = FALSE 
 mice_imputation = TRUE 
+n_mice_imputations = 5 
 
 ```
 
@@ -241,9 +242,16 @@ if (mice_imputation == TRUE) {
   
   # local_authority_characteristics = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
   
-  mice_model = mice(local_authority_characteristics, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
+  mice_model = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
   
-  local_authority_characteristics = complete(mice_model)
+  local_authority_characteristics_list = list()
+  
+  for(i in 1:n_mice_imputations) {
+    
+    local_authority_characteristics_list[[i]] = complete(mice_model, action = i)
+
+  }
+  
   
 }
 
@@ -275,11 +283,33 @@ length(unique(england_hospital_visits_local_authority_per100k$local_authority))
 # Number of England local authorities with per 100k data and complete matching data 
 length(unique(england_hospital_visits_local_authority_per100k_has_characteristics$local_authority))
 
+if (mice_imputation == FALSE) {
+
 # Filter local authority matching dataset 
 local_authority_characteristics_has_per100k = local_authority_characteristics %>% 
   dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority)) %>% 
   dplyr::mutate(treatment = if_else(local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority), 
                                     1, 0))
+
+}
+
+if (mice_imputation == TRUE) {
+
+local_authority_characteristics_has_per100k_list = list()
+
+for (i in 1:n_mice_imputations) {
+  
+  # Filter local authority matching dataset 
+  local_authority_characteristics_has_per100k = local_authority_characteristics_list[[i]] %>% 
+  dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority)) %>% 
+  dplyr::mutate(treatment = if_else(local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority), 
+                                    1, 0))
+  
+  local_authority_characteristics_has_per100k_list[[i]] = local_authority_characteristics_has_per100k
+  
+}
+
+}
 
 # Number of Scotland and England local authorities with per 100k data and complete matching data 
 length(unique(local_authority_characteristics_has_per100k$local_authority))
@@ -348,6 +378,8 @@ ggplot(data = scot_eng_total, aes(x = year, y = stays_per100k, colour = country)
 
 ```{r}
 
+if (mice_imputation == FALSE) {
+
 # Perform matching based on Mahalanobis distance 
 matchit_output = matchit(treatment ~ economic_activity_rate_16to64 + employment_rate_16to64 + unemployment_rate_16to64 + 
                            median_annual_pay_gross + percentage_male + percentage_0to15 + percentage_16to64 + 
@@ -373,9 +405,53 @@ matched_details = merge(matched_details, local_authority_characteristics_has_per
 matched_local_authorities = matched_details %>% 
   dplyr::select(Control_ID, Row.names, local_authority_treat, local_authority_control)
 
+}
+
 ```
 
 ```{r}
+
+if (mice_imputation == TRUE) {
+
+matched_local_authorities_list = list()
+  
+for (i in 1:n_mice_imputations) {
+  # Perform matching based on Mahalanobis distance 
+  matchit_output = matchit(treatment ~ economic_activity_rate_16to64 + employment_rate_16to64 + unemployment_rate_16to64 + 
+                             median_annual_pay_gross + percentage_male + percentage_0to15 + percentage_16to64 + 
+                             percentage_65plus, 
+                           data = local_authority_characteristics_has_per100k_list[[i]], 
+                           method = "nearest", distance = "mahalanobis")
+  
+  # Match data 
+  matched_data = match.data(matchit_output)
+  
+  # Match matrix 
+  match_matrix = matchit_output$match.matrix
+  
+  # Create matched pairs dataframe 
+  matched_pairs = data.frame(Treatment_ID = rownames(match_matrix), 
+                             Control_ID = as.vector(match_matrix))
+  
+  # Merge back into original data 
+  matched_details = merge(local_authority_characteristics_has_per100k, matched_pairs, by.x = "row.names", by.y = "Treatment_ID")
+  matched_details = merge(matched_details, local_authority_characteristics_has_per100k, by.x = "Control_ID", by.y = "row.names", suffixes = c("_treat", "_control"))
+  
+  # Just local authorities 
+  matched_local_authorities = matched_details %>% 
+    dplyr::select(Control_ID, Row.names, local_authority_treat, local_authority_control)
+  
+  matched_local_authorities_list[[i]] = matched_local_authorities
+  
+  }
+  
+}
+
+```
+
+```{r}
+
+if (mice_imputation == FALSE) {
 
 # Basic pre vs post difference in difference 
 hospitalisations_wide = hospitalisations %>% 
@@ -396,9 +472,54 @@ dif_in_dif_estimate = (post_treat - pre_treat) - (post_control - pre_control)
 
 dif_in_dif_estimate
 
+}
+
 ```
 
 ```{r}
+
+if (mice_imputation == TRUE) {
+
+dif_in_dif_estimate_list = c()
+
+dif_in_dif_list = list()
+
+for (i in 1:n_mice_imputations) {
+  
+  # Basic pre vs post difference in difference 
+  hospitalisations_wide = hospitalisations %>% 
+    dplyr::select(-financial_year) %>% 
+    tidyr::pivot_wider(names_from = year, values_from = stays_per100k)
+  
+  dif_in_dif = matched_local_authorities_list[[i]] %>% 
+    dplyr::left_join(hospitalisations_wide, by = c("local_authority_treat" = "local_authority")) %>% 
+    dplyr::left_join(hospitalisations_wide, by = c("local_authority_control" = "local_authority"), suffix = c("_treat", "_control")) 
+  
+  # Pre and post treatment outcomes for the treatment and control groups 
+  pre_treat = mean(dif_in_dif$`2017_treat`)
+  post_treat = mean(dif_in_dif$`2019_treat`)
+  pre_control = mean(dif_in_dif$`2017_control`)
+  post_control = mean(dif_in_dif$`2019_control`)
+  
+  dif_in_dif_estimate = (post_treat - pre_treat) - (post_control - pre_control)
+  
+  dif_in_dif_estimate
+  
+  dif_in_dif_estimate_list[[i]] = dif_in_dif_estimate
+  
+  dif_in_dif_list[[i]] = dif_in_dif
+  
+}
+  
+  dif_in_dif_estimate_list
+  
+}
+
+```
+
+```{r}
+
+if (mice_imputation == FALSE) {
 
 # Test parallel trends assumption 
 hospitalisations_long = dif_in_dif %>% 
@@ -427,9 +548,54 @@ ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = g
 
 # TODO: Graph placebo tests for every two year period. All positive prior to treatment, all negative post treatment. 
 
+}
+
 ```
 
 ```{r}
+
+if (mice_imputation == TRUE) {
+
+for (i in 1:n_mice_imputations) {
+  
+  # Test parallel trends assumption 
+  hospitalisations_long = dif_in_dif_list[[i]] %>% 
+    tidyr::pivot_longer(cols = starts_with("20"), 
+                        names_to = "year", 
+                        values_to = "stays_per100k") %>% 
+    dplyr::mutate(group = case_when(str_ends(year, "_treat") ~ "Treatment", 
+                                    str_ends(year, "_control") ~ "Control", 
+                                    TRUE ~ NA)) %>% 
+    dplyr::mutate(year = as.numeric(str_sub(str_trim(year), start = 1, end = 4)) + 1) %>% 
+    dplyr::group_by(group, year) %>% 
+    dplyr::summarise(stays_per100k = mean(stays_per100k))
+  
+  # Treatment and control alcohol related hospital visits per 100,000 
+  plot = ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = group)) +
+           geom_line(size = 0.75) +
+           geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
+           annotate("text", x = 2019.05, y = 25, label = "Intervention", color = "red", size = 4) +
+           geom_vline(xintercept = 2017.92, color = "blue", size = 0.6, alpha = 0.8) +
+           annotate("text", x = 2016.425, y = 25, label = "Intervention Announcement", color = "blue", size = 4) +
+           scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
+           scale_y_continuous(breaks = breaks_width(100), limits = c(0, 800)) +
+           labs(x = "Year", y = "Mean Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
+           theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+                 axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
+  
+  print(plot)
+  
+  # TODO: Graph placebo tests for every two year period. All positive prior to treatment, all negative post treatment. 
+  
+}
+
+}
+
+```
+
+```{r}
+
+if (mice_imputation == FALSE) {
 
 # Placebo test for every two year time period prior and spanning the intervention date 
 dif_in_dif_2y_estimates = list()
@@ -444,7 +610,7 @@ for (i in 1:6) {
   
   dif_in_dif_estimate_i = (post_treat_i - pre_treat_i) - (post_control_i - pre_control_i)
   
-  dif_in_dif_2y_estimates[i] = dif_in_dif_estimate_i
+  dif_in_dif_2y_estimates[[i]] = dif_in_dif_estimate_i
   
 }
 
@@ -517,9 +683,13 @@ ggplot(data = dif_in_dif_2y_estimates_placebo, aes(x = year, y = dif_in_dif_2y_e
 
 # Note 2020 represents 2019/20 etc. 
 
+}
+
 ```
 
 ```{r}
+
+if (mice_imputation == FALSE) {
 
 # Placebo test for every one year time period prior and spanning the intervention date 
 dif_in_dif_1y_estimates = list()
@@ -534,7 +704,7 @@ for (i in 1:6) {
   
   dif_in_dif_estimate_i = (post_treat_i - pre_treat_i) - (post_control_i - pre_control_i)
   
-  dif_in_dif_1y_estimates[i] = dif_in_dif_estimate_i
+  dif_in_dif_1y_estimates[[i]] = dif_in_dif_estimate_i
   
 }
 
@@ -589,7 +759,7 @@ dif_in_dif_1y_estimates_placebo = data.frame(year, dif_in_dif_1y_estimates, lowe
 dif_in_dif_1y_estimates_placebo = dif_in_dif_1y_estimates_placebo %>% 
   dplyr::mutate(p_value = 2 * pnorm(-abs(dif_in_dif_1y_estimates / se)))
 
-# Placebo test results for every two year time period prior to and spanning the intervention date 
+# Placebo test results for every one year time period prior to and spanning the intervention date 
 ggplot(data = dif_in_dif_1y_estimates_placebo, aes(x = year, y = dif_in_dif_1y_estimates)) +
   geom_line(size = 1, linetype = "dotted", color = "black", size = 0.75, alpha = 0.75) +
   geom_point(shape = 16, size = 3, color = "black") +
@@ -605,7 +775,281 @@ ggplot(data = dif_in_dif_1y_estimates_placebo, aes(x = year, y = dif_in_dif_1y_e
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
-# Note 20219 represents 2018/19 etc. 
+# Note 2019 represents 2018/19 etc. 
+
+}
+
+```
+
+```{r}
+
+if (mice_imputation == TRUE) {
+
+dif_in_dif_2y_estimates_placebo_list = list()
+
+for (i in 1:n_mice_imputations) {
+  
+  # Placebo test for every two year time period prior and spanning the intervention date 
+  dif_in_dif_2y_estimates = list()
+  
+  # Dif in dif calculation for each placebo and actual estimate 
+  for (j in 1:6) {
+    
+    pre_treat_j = mean(dif_in_dif_list[[i]][, (j + 4)])
+    post_treat_j = mean(dif_in_dif_list[[i]][, (j + 6)])
+    pre_control_j = mean(dif_in_dif_list[[i]][, (j + 12)])
+    post_control_j = mean(dif_in_dif_list[[i]][, (j + 14)])
+    
+    dif_in_dif_estimate_j = (post_treat_j - pre_treat_j) - (post_control_j - pre_control_j)
+    
+    dif_in_dif_2y_estimates[[j]] = dif_in_dif_estimate_j
+    
+  }
+  
+  # Function to compute dif in dif estimate 
+  dif_in_dif_function = function(data, indices) {
+    
+    # Bootstrap resampling 
+    data_subset = data[indices, ]
+    
+    # Dif in dif calculation for each placebo and actual estimate 
+    estimates = sapply(1:6, function(k) {
+    
+      pre_treat_k = mean(data_subset[, (k + 4)])
+      post_treat_k = mean(data_subset[, (k + 6)])
+      pre_control_k = mean(data_subset[, (k + 12)])
+      post_control_k = mean(data_subset[, (k + 14)])
+      
+      (post_treat_k - pre_treat_k) - (post_control_k - pre_control_k)
+      
+    })
+    
+    return(estimates)
+    
+  }
+
+  # Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
+  set.seed(123)
+  
+  bootstrap_results = boot(data = dif_in_dif_list[[i]], statistic = dif_in_dif_function, R = 10000)
+  
+  # Standard errors 
+  boot_se = apply(bootstrap_results$t, 2, sd)
+  
+  # Bootstrap confidence intervals 
+  boot_ci = t(apply(bootstrap_results$t, 2, function(x) {
+    
+    quantile(x, probs = c(0.025, 0.975))
+    
+  }))
+  
+  # Dataframe rows 
+  dif_in_dif_2y_estimates = unlist(dif_in_dif_2y_estimates) 
+  year = c(2015.25, 2016.25, 2017.25, 2018.25, 2019.25, 2020.25) # End dates of years for showing treatment date against 
+  lower_ci = boot_ci[, 1]
+  upper_ci = boot_ci[, 2]
+  se = boot_se
+  
+  # Create dataframe 
+  dif_in_dif_2y_estimates_placebo = data.frame(year, dif_in_dif_2y_estimates, lower_ci, upper_ci, se)
+  
+  # Calculate p-values 
+  dif_in_dif_2y_estimates_placebo = dif_in_dif_2y_estimates_placebo %>% 
+    dplyr::mutate(p_value = 2 * pnorm(-abs(dif_in_dif_2y_estimates / se)))
+    
+  dif_in_dif_2y_estimates_placebo_list[[i]] = dif_in_dif_2y_estimates_placebo
+  
+}
+
+for (i in 1:n_mice_imputations) {
+  
+  if (i == 1) {
+    
+    dif_in_dif_2y_estimates_placebo_df = dif_in_dif_2y_estimates_placebo_list[[i]] %>% 
+      dplyr::mutate(mice_run = i) %>% 
+      dplyr::mutate(mice_run = as.character(mice_run))
+    
+  }
+  
+  if (i != 1) {
+    
+    dif_in_dif_2y_estimates_placebo_i = dif_in_dif_2y_estimates_placebo_list[[i]] %>% 
+      dplyr::mutate(mice_run = i) %>% 
+      dplyr::mutate(mice_run = as.character(mice_run))
+    
+    dif_in_dif_2y_estimates_placebo_df = rbind(dif_in_dif_2y_estimates_placebo_df, dif_in_dif_2y_estimates_placebo_i)
+    
+  }
+  
+}
+
+# Rubin's Rules to get overall standard error, confidence interval and p-value estimates 
+dif_in_dif_2y_estimates_overall = dif_in_dif_2y_estimates_placebo_df %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(mean_estimate = mean(dif_in_dif_2y_estimates), 
+                   within_imputation_variance = mean((se)^2), 
+                   between_imputation_variance = var(dif_in_dif_2y_estimates), 
+                   total_variance = mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_2y_estimates), 
+                   se_pooled = sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_2y_estimates)), 
+                   lower_ci = mean(dif_in_dif_2y_estimates) - 1.96 * sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_2y_estimates)), 
+                   upper_ci = mean(dif_in_dif_2y_estimates) + 1.96 * sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_2y_estimates)), 
+                   p_value = 2 * (1 - pnorm(abs(mean(dif_in_dif_2y_estimates) / sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_2y_estimates))))))
+
+# Placebo test results for every two year time period prior to and spanning the intervention date 
+ggplot(data = dif_in_dif_2y_estimates_overall, aes(x = year, y = mean_estimate)) +
+  geom_line(size = 1, linetype = "dotted", color = "black", size = 0.75, alpha = 0.75) +
+  geom_point(shape = 16, size = 3, color = "black") +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
+  geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
+  annotate("text", x = 2018.75, y = -75.5, label = "Intervention", color = "red", size = 4) +
+  geom_vline(xintercept = 2017.92, color = "blue", size = 0.6, alpha = 0.8) +
+  annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "blue", size = 4) +
+  scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
+  scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
+  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Estimated Causal Effect Including Pretreatment Placebos") +
+  theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+        axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
+
+# Note 2020 represents 2019/20 etc. 
+
+}
+
+```
+
+```{r}
+
+if (mice_imputation == TRUE) {
+
+dif_in_dif_1y_estimates_placebo_list = list()
+
+for (i in 1:n_mice_imputations) {
+  
+  # Placebo test for every one year time period prior and spanning the intervention date 
+  dif_in_dif_1y_estimates = list()
+  
+  # Dif in dif calculation for each placebo and actual estimate 
+  for (j in 1:6) {
+    
+    pre_treat_j = mean(dif_in_dif_list[[i]][, (j + 4)])
+    post_treat_j = mean(dif_in_dif_list[[i]][, (j + 5)])
+    pre_control_j = mean(dif_in_dif_list[[i]][, (j + 12)])
+    post_control_j = mean(dif_in_dif_list[[i]][, (j + 13)])
+    
+    dif_in_dif_estimate_j = (post_treat_j - pre_treat_j) - (post_control_j - pre_control_j)
+    
+    dif_in_dif_1y_estimates[[j]] = dif_in_dif_estimate_j
+    
+  }
+  
+  # Function to compute dif in dif estimate 
+  dif_in_dif_function = function(data, indices) {
+    
+    # Bootstrap resampling 
+    data_subset = data[indices, ]
+    
+    # Dif in dif calculation for each placebo and actual estimate 
+    estimates = sapply(1:6, function(k) {
+    
+      pre_treat_k = mean(data_subset[, (k + 4)])
+      post_treat_k = mean(data_subset[, (k + 6)])
+      pre_control_k = mean(data_subset[, (k + 12)])
+      post_control_k = mean(data_subset[, (k + 14)])
+      
+      (post_treat_k - pre_treat_k) - (post_control_k - pre_control_k)
+      
+    })
+    
+    return(estimates)
+    
+  }
+
+  # Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
+  set.seed(123)
+  
+  bootstrap_results = boot(data = dif_in_dif_list[[i]], statistic = dif_in_dif_function, R = 10000)
+  
+  # Standard errors 
+  boot_se = apply(bootstrap_results$t, 2, sd)
+  
+  # Bootstrap confidence intervals 
+  boot_ci = t(apply(bootstrap_results$t, 2, function(x) {
+    
+    quantile(x, probs = c(0.025, 0.975))
+    
+  }))
+  
+  # Dataframe rows 
+  dif_in_dif_1y_estimates = unlist(dif_in_dif_1y_estimates) 
+  year = c(2014.25, 2015.25, 2016.25, 2017.25, 2018.25, 2019.25) # End dates of years for showing treatment date against 
+  lower_ci = boot_ci[, 1]
+  upper_ci = boot_ci[, 2]
+  se = boot_se
+  
+  # Create dataframe 
+  dif_in_dif_1y_estimates_placebo = data.frame(year, dif_in_dif_1y_estimates, lower_ci, upper_ci, se)
+  
+  # Calculate p-values 
+  dif_in_dif_1y_estimates_placebo = dif_in_dif_1y_estimates_placebo %>% 
+    dplyr::mutate(p_value = 2 * pnorm(-abs(dif_in_dif_1y_estimates / se)))
+    
+  dif_in_dif_1y_estimates_placebo_list[[i]] = dif_in_dif_1y_estimates_placebo
+  
+}
+
+for (i in 1:n_mice_imputations) {
+  
+  if (i == 1) {
+    
+    dif_in_dif_1y_estimates_placebo_df = dif_in_dif_1y_estimates_placebo_list[[i]] %>% 
+      dplyr::mutate(mice_run = i) %>% 
+      dplyr::mutate(mice_run = as.character(mice_run))
+    
+  }
+  
+  if (i != 1) {
+    
+    dif_in_dif_1y_estimates_placebo_i = dif_in_dif_1y_estimates_placebo_list[[i]] %>% 
+      dplyr::mutate(mice_run = i) %>% 
+      dplyr::mutate(mice_run = as.character(mice_run))
+    
+    dif_in_dif_1y_estimates_placebo_df = rbind(dif_in_dif_1y_estimates_placebo_df, dif_in_dif_1y_estimates_placebo_i)
+    
+  }
+  
+}
+
+# Rubin's Rules to get overall standard error, confidence interval and p-value estimates 
+dif_in_dif_1y_estimates_overall = dif_in_dif_1y_estimates_placebo_df %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(mean_estimate = mean(dif_in_dif_1y_estimates), 
+                   within_imputation_variance = mean((se)^2), 
+                   between_imputation_variance = var(dif_in_dif_1y_estimates), 
+                   total_variance = mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_1y_estimates), 
+                   se_pooled = sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_1y_estimates)), 
+                   lower_ci = mean(dif_in_dif_1y_estimates) - 1.96 * sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_1y_estimates)), 
+                   upper_ci = mean(dif_in_dif_1y_estimates) + 1.96 * sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_1y_estimates)), 
+                   p_value = 2 * (1 - pnorm(abs(mean(dif_in_dif_1y_estimates) / sqrt(mean((se)^2) + (1 + (1 / n_mice_imputations)) * var(dif_in_dif_1y_estimates))))))
+
+# Placebo test results for every one year time period prior to and spanning the intervention date 
+ggplot(data = dif_in_dif_1y_estimates_overall, aes(x = year, y = mean_estimate)) +
+  geom_line(size = 1, linetype = "dotted", color = "black", size = 0.75, alpha = 0.75) +
+  geom_point(shape = 16, size = 3, color = "black") +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
+  geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
+  annotate("text", x = 2018.75, y = -75.5, label = "Intervention", color = "red", size = 4) +
+  geom_vline(xintercept = 2017.92, color = "blue", size = 0.6, alpha = 0.8) +
+  annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "blue", size = 4) +
+  scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
+  scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
+  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
+  theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+        axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
+
+# Note 2019 represents 2018/19 etc. 
+
+}
 
 ```
 
