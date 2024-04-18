@@ -16,8 +16,21 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggplot2)
 library(scales)
+library(Hmisc)
+library(mice)
 library(MatchIt)
 library(boot)
+
+```
+
+## Flags 
+
+```{r}
+
+# Imputation flags 
+mean_imputation = FALSE 
+median_imputation = FALSE 
+mice_imputation = TRUE 
 
 ```
 
@@ -178,6 +191,61 @@ uk_pop_ages_sex_survey_2017_clean = uk_pop_ages_sex_survey_2017 %>%
 local_authority_characteristics = uk_pop_survey_2017_clean %>%  
   dplyr::inner_join(uk_earnings_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
   dplyr::inner_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code")) 
+
+if (mean_imputation == TRUE) {
+  
+  # Create local authority matching dataset 
+  local_authority_characteristics = uk_pop_survey_2017_clean %>%  
+    dplyr::full_join(uk_earnings_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+    dplyr::full_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+    dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority)) %>% 
+    dplyr::select(c(local_authority, economic_activity_rate_16to64, employment_rate_16to64, unemployment_rate_16to64, 
+                  median_annual_pay_gross, percentage_male, percentage_0to15, percentage_16to64, percentage_65plus))
+
+  local_authority_characteristics = data.frame(lapply(local_authority_characteristics, function(x) impute(x, mean)))
+
+}
+
+if (median_imputation == TRUE) {
+  
+  # Create local authority matching dataset 
+  local_authority_characteristics = uk_pop_survey_2017_clean %>%  
+    dplyr::full_join(uk_earnings_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+    dplyr::full_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+    dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority)) %>% 
+    dplyr::select(c(local_authority, economic_activity_rate_16to64, employment_rate_16to64, unemployment_rate_16to64, 
+                  median_annual_pay_gross, percentage_male, percentage_0to15, percentage_16to64, percentage_65plus))
+
+  local_authority_characteristics = data.frame(lapply(local_authority_characteristics, function(x) impute(x, median)))
+
+}
+
+if (mice_imputation == TRUE) {
+  
+  # Create local authority matching dataset 
+  local_authority_characteristics = uk_pop_survey_2017_clean %>%  
+    dplyr::full_join(uk_earnings_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+    dplyr::full_join(uk_pop_ages_sex_survey_2017_clean, by = c("local_authority", "area_code")) %>% 
+    dplyr::filter(local_authority %in% unique(england_hospital_visits_local_authority_per100k$local_authority) | local_authority %in% unique(scotland_hospital_visits_local_authority_per100k$local_authority)) %>% 
+    dplyr::select(c(local_authority, economic_activity_rate_16to64, employment_rate_16to64, unemployment_rate_16to64, 
+                  median_annual_pay_gross, percentage_male, percentage_0to15, percentage_16to64, percentage_65plus))
+  
+  # Use MICE to impute missing values and produce 5 datasets with different imputed missing values
+  pred_matrix = quickpred(local_authority_characteristics)
+  
+  pred_matrix[, "local_authority"] = 0
+  
+  methods = rep("norm.predict", ncol(local_authority_characteristics))
+  names(methods) = colnames(local_authority_characteristics)
+  methods["local_authority"] = ""
+  
+  # local_authority_characteristics = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
+  
+  mice_model = mice(local_authority_characteristics, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
+  
+  local_authority_characteristics = complete(mice_model)
+  
+}
 
 # test1 = unique(scotland_hospital_visits_local_authority_per100k$local_authority)
 # 
