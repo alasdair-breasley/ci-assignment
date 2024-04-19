@@ -125,7 +125,8 @@ scotland_population_whole_clean = scotland_population_local_authority_whole %>%
 # Create Scotland alcohol related hospital visits per 100,00 by local authority 
 scotland_hospital_visits_local_authority_per100k = scotland_hospital_visits_local_authority_clean %>% 
   dplyr::left_join(scotland_population_local_authority_clean, by = c("local_authority", "year")) %>% 
-  dplyr::mutate(stays_per100k = (stays * 100000) / population)
+  dplyr::mutate(stays_per100k = (stays * 100000) / population) # %>% 
+  # dplyr::filter(local_authority != "Dumfries and Galloway" & local_authority != "Scottish Borders") # Remove border local authorities check 
 
 # Create Scotland alcohol related hospital visits per 100,00 national 
 scotland_hospital_visits_whole_per100k = scotland_hospital_visits_whole_clean %>% 
