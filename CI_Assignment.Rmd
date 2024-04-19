@@ -236,7 +236,7 @@ if (mice_imputation == TRUE) {
   
   pred_matrix[, "local_authority"] = 0
   
-  methods = rep("norm.predict", ncol(local_authority_characteristics))
+  methods = rep("pmm", ncol(local_authority_characteristics))
   names(methods) = colnames(local_authority_characteristics)
   methods["local_authority"] = ""
   
