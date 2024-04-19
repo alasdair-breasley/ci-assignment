@@ -28,6 +28,7 @@ library(boot)
 ```{r}
 
 # Imputation flags 
+# If all FALSE removes any rows with NAs as opposed to imputing 
 mean_imputation = FALSE 
 median_imputation = FALSE 
 mice_imputation = TRUE 
@@ -240,9 +241,9 @@ if (mice_imputation == TRUE) {
   names(methods) = colnames(local_authority_characteristics)
   methods["local_authority"] = ""
   
-  # local_authority_characteristics = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
+  # local_authority_characteristics = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 12345, printFlag = TRUE)
   
-  mice_model = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 123, printFlag = TRUE)
+  mice_model = mice(local_authority_characteristics, m = 5, method = methods, predictorMatrix = pred_matrix, seed = 12345, printFlag = TRUE)
   
   local_authority_characteristics_list = list()
   
@@ -637,7 +638,7 @@ dif_in_dif_function = function(data, indices) {
 }
 
 # Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
-set.seed(123)
+set.seed(12345)
 
 bootstrap_results = boot(data = dif_in_dif, statistic = dif_in_dif_function, R = 10000)
 
@@ -731,7 +732,7 @@ dif_in_dif_function = function(data, indices) {
 }
 
 # Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
-set.seed(123)
+set.seed(12345)
 
 bootstrap_results = boot(data = dif_in_dif, statistic = dif_in_dif_function, R = 10000)
 
@@ -829,7 +830,7 @@ for (i in 1:n_mice_imputations) {
   }
 
   # Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
-  set.seed(123)
+  set.seed(12345)
   
   bootstrap_results = boot(data = dif_in_dif_list[[i]], statistic = dif_in_dif_function, R = 10000)
   
@@ -965,7 +966,7 @@ for (i in 1:n_mice_imputations) {
   }
 
   # Bootstrap to calculate standard errors for causal estimate and placebo causal estimates 
-  set.seed(123)
+  set.seed(12345)
   
   bootstrap_results = boot(data = dif_in_dif_list[[i]], statistic = dif_in_dif_function, R = 10000)
   
