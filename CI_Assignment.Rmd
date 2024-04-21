@@ -17,6 +17,7 @@ library(tidyverse)
 library(ggplot2)
 library(scales)
 library(gridExtra)
+library(corrplot)
 library(Hmisc)
 library(mice)
 library(MatchIt)
@@ -392,6 +393,21 @@ ggplot(data = scot_eng_total, aes(x = year, y = stays_per100k, colour = country)
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
 ```
+
+```{r}
+
+# Plot with pair correlations to justify Mahalanobis 
+covariates = local_authority_characteristics_has_per100k[, c("economic_activity_rate_16to64", "employment_rate_16to64", "unemployment_rate_16to64",
+                                                             "median_annual_pay_gross", "percentage_male", "percentage_0to15",
+                                                             "percentage_16to64", "percentage_65plus")]
+
+cor_matrix = cor(covariates, method = "spearman")
+
+corrplot(cor_matrix, method = "color", type = "upper", order = "hclust",
+         tl.col = "black", tl.srt = 90, addCoef.col = "black", number.cex = 1)
+
+```
+
 
 ```{r}
 
