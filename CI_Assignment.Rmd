@@ -484,6 +484,26 @@ for (i in 1:n_mice_imputations) {
 
 ```{r}
 
+matched_data_vis = matched_data %>% 
+  dplyr::select(local_authority, treatment, economic_activity_rate_16to64, employment_rate_16to64, unemployment_rate_16to64, 
+                median_annual_pay_gross, percentage_male, percentage_0to15, percentage_16to64, percentage_65plus) %>% 
+  dplyr::mutate(treatment = as.factor(treatment))
+
+# Histogram of distribution of Local AUthority variable treatment vs control 
+ggplot(data = matched_data_vis, aes(x = employment_rate_16to64, y = after_stat(count), fill = treatment)) +
+  geom_histogram(binwidth = 2.5, colour = "black", position = "identity", alpha = 0.3) +
+  scale_fill_manual(values = c("1" = "red", "0" = "blue"), labels = c("1" = "Treatment Group", "0" = "Control Group")) +
+  scale_x_continuous(breaks = breaks_width(2.5), minor_breaks = NULL) +
+  scale_y_continuous(breaks = breaks_width(2)) +
+  labs(x = "Employment Rate Ages 16 to 64", y = "Count", title = "Distribution of Employment Rate Ages 16 to 64 Treatment vs Control", fill = NULL) +
+  theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+        axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"))
+
+
+```
+
+```{r}
+
 if (mice_imputation == FALSE) {
 
 # Basic pre vs post difference in difference 
