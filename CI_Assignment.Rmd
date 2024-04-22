@@ -330,7 +330,7 @@ hospitalisations = rbind(hospitalisations, england_hospital_visits_local_authori
 ```{r}
 
 # Plot to check imputation was reasonable 
-s_plot = stripplot(mice_model, employment_rate_16to64, pch = 20, cex = 1.2, alpha = 1)
+s_plot = stripplot(mice_model, employment_rate_16to64, pch = 20, cex = 1.2, alpha = 0.75)
 
 s_plot = update(s_plot, 
                 main = "Imputed Values (Red) for Employment Rate for 16- to 64-Year-Old Residents", 
@@ -626,12 +626,13 @@ for (i in 1:n_mice_imputations) {
   # Treatment and control alcohol related hospital visits per 100,000 
   plot = ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = group)) +
            geom_line(size = 0.75) +
-           geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
-           annotate("text", x = 2019.05, y = 25, label = "Intervention", color = "red", size = 4) +
-           geom_vline(xintercept = 2017.92, color = "blue", size = 0.6, alpha = 0.8) +
-           annotate("text", x = 2016.425, y = 25, label = "Intervention Announcement", color = "blue", size = 4) +
+           geom_vline(xintercept = 2018.33, color = "black", size = 0.6, alpha = 0.8) +
+           annotate("text", x = 2019.05, y = 25, label = "Intervention", color = "black", size = 4) +
+           geom_vline(xintercept = 2017.92, color = "#333333", size = 0.6, alpha = 0.8, linetype = "dashed") +
+           annotate("text", x = 2016.425, y = 25, label = "Intervention Announcement", color = "#333333", size = 4) +
            scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
            scale_y_continuous(breaks = breaks_width(100), limits = c(0, 800)) +
+           scale_color_manual(values = c("Treatment" = "#EC4646", "Control" = "#4646EC")) +
            labs(x = "Year", y = "Mean Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
            theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
                  axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
@@ -694,10 +695,11 @@ legend_order = factor(c("Treatment", "Control", "Intervention Announcement", "In
 ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = group)) +
   geom_line(size = 0.75) +
   geom_vline(aes(xintercept = 2018.33, color = "Intervention"), size = 0.6, alpha = 0.8) +
-  geom_vline(aes(xintercept = 2017.92, color = "Intervention Announcement"), size = 0.6, alpha = 0.8) +
+  geom_vline(aes(xintercept = 2017.92, color = "Intervention Announcement"), size = 0.6, alpha = 0.8, linetype = "dashed") +
   scale_color_manual(values = c("Intervention" = "red", "Intervention Announcement" = "blue", "Treatment" = "#00BFC4", "Control" = "#F8766D")) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(100), limits = c(0, 800)) +
+  scale_color_manual(values = c("Treatment" = "#EC4646", "Control" = "#4646EC", "Intervention Announcement" = "#333333", "Intervention" = "black")) +
   labs(x = "Year", y = "Mean Hospital stays per 100,000", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control",
        color = "Legend") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), 
@@ -1022,8 +1024,8 @@ ggplot(data = dif_in_dif_2y_estimates_overall, aes(x = year, y = mean_estimate))
   geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
   geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
   annotate("text", x = 2018.75, y = -75.5, label = "Intervention", color = "red", size = 4) +
-  geom_vline(xintercept = 2017.92, color = "blue", size = 0.6, alpha = 0.8) +
-  annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "blue", size = 4) +
+  geom_vline(xintercept = 2017.92, color = "#333333", size = 0.6, alpha = 0.8, linetype = "dashed") +
+  annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "#333333", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
   labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Estimated Causal Effect Including Pretreatment Placebos") +
@@ -1158,8 +1160,8 @@ ggplot(data = dif_in_dif_1y_estimates_overall, aes(x = year, y = mean_estimate))
   geom_hline(yintercept = 0, linetype = "dashed", color = "dark grey", size = 0.75, alpha = 0.8) +
   geom_vline(xintercept = 2018.33, color = "red", size = 0.6, alpha = 0.8) +
   annotate("text", x = 2018.75, y = -75.5, label = "Intervention", color = "red", size = 4) +
-  geom_vline(xintercept = 2017.92, color = "blue", size = 0.6, alpha = 0.8) +
-  annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "blue", size = 4) +
+  geom_vline(xintercept = 2017.92, color = "#333333", size = 0.6, alpha = 0.8, linetype = "dashed") +
+  annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "#333333", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
   labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
