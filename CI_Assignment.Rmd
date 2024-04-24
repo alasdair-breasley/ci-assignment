@@ -333,7 +333,7 @@ hospitalisations = rbind(hospitalisations, england_hospital_visits_local_authori
 s_plot = stripplot(mice_model, employment_rate_16to64, pch = 20, cex = 1.2, alpha = 0.75)
 
 s_plot = update(s_plot, 
-                main = "Imputed Values (Red) for Employment Rate for 16- to 64-Year-Old Residents", 
+                main = "Imputed Values (Red) for Employment Rate (16 to 64)", 
                 xlab = "Imputation Run (0 = Initial Dataset)", 
                 ylab = "Employment Rate")
 
@@ -343,7 +343,7 @@ s_plot
 s_plot = stripplot(mice_model, economic_activity_rate_16to64, pch = 20, cex = 1.2, alpha = 0.75)
 
 s_plot = update(s_plot, 
-                main = "Imputed Values (Red) for Economic Activity Rate for 16- to 64-Year-Old Residents", 
+                main = "Imputed Values (Red) for Economic Activity Rate (16 to 64)", 
                 xlab = "Imputation Run (0 = Initial Dataset)", 
                 ylab = "Employment Rate")
 
@@ -353,7 +353,7 @@ s_plot
 s_plot = stripplot(mice_model, unemployment_rate_16to64, pch = 20, cex = 1.2, alpha = 0.75)
 
 s_plot = update(s_plot, 
-                main = "Imputed Values (Red) for Unemployment Rate for 16- to 64-Year-Old Residents", 
+                main = "Imputed Values (Red) for Unemployment Rate (16 to 64)", 
                 xlab = "Imputation Run (0 = Initial Dataset)", 
                 ylab = "Employment Rate")
 
@@ -477,6 +477,8 @@ matched_local_authorities = matched_details %>%
 if (mice_imputation == TRUE) {
 
 matched_local_authorities_list = list()
+
+matched_data_list = list()
   
 for (i in 1:n_mice_imputations) {
   # Perform matching based on Mahalanobis distance 
@@ -488,6 +490,8 @@ for (i in 1:n_mice_imputations) {
   
   # Match data 
   matched_data = match.data(matchit_output)
+  
+  matched_data_list[[i]] = matched_data
   
   # Match matrix 
   match_matrix = matchit_output$match.matrix
@@ -514,6 +518,31 @@ for (i in 1:n_mice_imputations) {
 
 ```{r}
 
+if (mice_imputation == TRUE) {
+  
+for (i in 1:n_mice_imputations) {
+  
+  matched_data_vis = matched_data_list[[i]] %>% 
+    dplyr::select(local_authority, treatment, economic_activity_rate_16to64, employment_rate_16to64, unemployment_rate_16to64, 
+                  median_annual_pay_gross, percentage_male, percentage_0to15, percentage_16to64, percentage_65plus) %>% 
+    dplyr::mutate(treatment = as.factor(treatment))
+
+  # Histogram of distribution of Local AUthority variable treatment vs control 
+  plot = ggplot(data = matched_data_vis, aes(x = employment_rate_16to64, y = after_stat(count), fill = treatment)) +
+           geom_histogram(binwidth = 2.5, colour = "black", position = "identity", alpha = 0.3) +
+           scale_fill_manual(values = c("1" = "red", "0" = "blue"), labels = c("1" = "Treatment Group", "0" = "Control Group")) +
+           scale_x_continuous(breaks = breaks_width(2.5), minor_breaks = NULL) +
+           scale_y_continuous(breaks = breaks_width(2)) +
+           labs(x = "Employment Rate Ages 16 to 64", y = "Count", title = "Distribution of Employment Rate Ages 16 to 64 Treatment vs Control", fill = NULL) +
+           theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
+                 axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"))
+  
+  print(plot)
+  
+}
+  
+} else {
+
 matched_data_vis = matched_data %>% 
   dplyr::select(local_authority, treatment, economic_activity_rate_16to64, employment_rate_16to64, unemployment_rate_16to64, 
                 median_annual_pay_gross, percentage_male, percentage_0to15, percentage_16to64, percentage_65plus) %>% 
@@ -529,6 +558,7 @@ ggplot(data = matched_data_vis, aes(x = employment_rate_16to64, y = after_stat(c
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"))
 
+}
 
 ```
 
