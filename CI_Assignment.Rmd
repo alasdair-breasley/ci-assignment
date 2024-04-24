@@ -1028,7 +1028,7 @@ ggplot(data = dif_in_dif_2y_estimates_overall, aes(x = year, y = mean_estimate))
   annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "#333333", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
-  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Estimated Causal Effect Including Pretreatment Placebos") +
+  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Estimated Causal Effect 2-Year Pretreatment Placebos") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
@@ -1164,7 +1164,7 @@ ggplot(data = dif_in_dif_1y_estimates_overall, aes(x = year, y = mean_estimate))
   annotate("text", x = 2017.05, y = -75.5, label = "Intervention Announcement", color = "#333333", size = 4) +
   scale_x_continuous(breaks = breaks_width(1), minor_breaks = NULL) +
   scale_y_continuous(breaks = breaks_width(10), limits = c(-80, 80)) +
-  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Alcohol Related Hospital Visits per 100,000 Treatment vs Control") +
+  labs(x = "Year", y = "Dif in Dif Estimated Placebo Treatment Effects", title = "Estimated Causal Effect 1-Year Pretreatment Placebos") +
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
