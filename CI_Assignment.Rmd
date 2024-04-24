@@ -339,6 +339,36 @@ s_plot = update(s_plot,
 
 s_plot
 
+# Plot to check imputation was reasonable 
+s_plot = stripplot(mice_model, economic_activity_rate_16to64, pch = 20, cex = 1.2, alpha = 0.75)
+
+s_plot = update(s_plot, 
+                main = "Imputed Values (Red) for Economic Activity Rate for 16- to 64-Year-Old Residents", 
+                xlab = "Imputation Run (0 = Initial Dataset)", 
+                ylab = "Employment Rate")
+
+s_plot
+
+# Plot to check imputation was reasonable 
+s_plot = stripplot(mice_model, unemployment_rate_16to64, pch = 20, cex = 1.2, alpha = 0.75)
+
+s_plot = update(s_plot, 
+                main = "Imputed Values (Red) for Unemployment Rate for 16- to 64-Year-Old Residents", 
+                xlab = "Imputation Run (0 = Initial Dataset)", 
+                ylab = "Employment Rate")
+
+s_plot
+
+# Plot to check imputation was reasonable 
+s_plot = stripplot(mice_model, median_annual_pay_gross, pch = 20, cex = 1.2, alpha = 0.75)
+
+s_plot = update(s_plot, 
+                main = "Imputed Values (Red) for Median Annual Gross Income", 
+                xlab = "Imputation Run (0 = Initial Dataset)", 
+                ylab = "Employment Rate")
+
+s_plot
+
 ```
 
 ```{r}
