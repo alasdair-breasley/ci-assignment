@@ -641,8 +641,6 @@ ggplot(data = hospitalisations_long, aes(x = year, y = stays_per100k, colour = g
   theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5), axis.text = element_text(color = "black", size = 10),
         axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
 
-# TODO: Graph placebo tests for every two year period. All positive prior to treatment, all negative post treatment. 
-
 }
 
 ```
@@ -680,8 +678,6 @@ for (i in 1:n_mice_imputations) {
                  axis.title = element_text(size = 12), plot.title = element_text(size = 12, face = "bold"), legend.title = element_blank())
   
   print(plot)
-  
-  # TODO: Graph placebo tests for every two year period. All positive prior to treatment, all negative post treatment. 
   
 }
 
