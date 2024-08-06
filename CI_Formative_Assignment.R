@@ -1,3 +1,5 @@
+## Formative replication of a CI paper 
+
 ## Clear the R environment
 rm(list = ls())
 
